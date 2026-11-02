@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// --- 設定: Google Apps Script (GAS) のウェブアプリURL ---
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzESuhQi6WXyyhD-xLJ00w6D6AVozK3rxm5dIFcrirE6iK3NFHvQmmaUunYUXpZp3w/exec";
+
 // --- イベントデータベース ---
 const EVENT_DB = {
   stray: [
@@ -227,16 +230,19 @@ export default function CatLifeGame() {
   const [isTop10, setIsTop10] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState('');
   
+  // 管理者ページ関連
   const [adminPass, setAdminPass] = useState('');
   const [adminAuth, setAdminAuth] = useState(false);
+  const [allUsersData, setAllUsersData] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(5.0);
   const [speed, setSpeed] = useState(1); 
   const timerRef = useRef(null);
 
-  // デイリーランキングの取得と日付変更リセットの管理
+  // デイリーランキングの取得
   useEffect(() => {
-    const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const todayStr = new Date().toISOString().slice(0, 10);
     const savedKey = `cat_daily_ranking_${todayStr}`;
     const saved = localStorage.getItem(savedKey);
 
@@ -247,21 +253,64 @@ export default function CatLifeGame() {
         console.error(e);
       }
     } else {
-      // 初期デモデータ
       const initialRankings = [
-        { name: 'シャム', score: 1850, age: 16, type: '飼い猫' },
-        { name: 'クロ', score: 1420, age: 12, type: '野良猫' },
-        { name: 'ミルク', score: 1200, age: 10, type: '飼い猫' },
+        { name: 'シャム (みけ)', score: 1850, age: 16, type: '飼い猫' },
+        { name: 'クロ (たろう)', score: 1420, age: 12, type: '野良猫' },
       ];
       setDailyRankings(initialRankings);
       localStorage.setItem(savedKey, JSON.stringify(initialRankings));
     }
   }, []);
 
-  const saveDailyRanking = (scoreToSave, customUserName) => {
+  // スプレッドシートへデータを送信する関数
+  const sendToSpreadsheet = async (scoreToSave, customUserName) => {
+    if (!GAS_URL || GAS_URL.includes("ここにGASの")) return;
+    
+    const payload = {
+      date: new Date().toLocaleString(),
+      player: customUserName.trim() === '' ? 'ゲスト' : customUserName.trim(),
+      catName: catName,
+      type: catType === 'pet' ? '飼い猫' : '野良猫',
+      age: age,
+      score: scoreToSave,
+      reason: causeOfDeath
+    };
+
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.error('スプレッドシート送信エラー', e);
+    }
+  };
+
+  // 管理者ログイン成功時にスプレッドシートから全ユーザーデータを取得
+  const fetchAllUsersDataFromSS = async () => {
+    if (!GAS_URL || GAS_URL.includes("ここにGASの")) return;
+    setLoadingLogs(true);
+    try {
+      const res = await fetch(GAS_URL);
+      const data = await res.json();
+      setAllUsersData(data.reverse()); // 新しい順に並び替え
+    } catch (e) {
+      console.error('全データ取得エラー', e);
+    }
+    setLoadingLogs(false);
+  };
+
+  useEffect(() => {
+    if (adminAuth) {
+      fetchAllUsersDataFromSS();
+    }
+  }, [adminAuth]);
+
+  const saveDailyRankingAndSS = (scoreToSave, customUserName) => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const savedKey = `cat_daily_ranking_${todayStr}`;
-
     const displayName = customUserName.trim() === '' ? 'ゲスト' : customUserName.trim();
 
     const newEntry = {
@@ -273,10 +322,13 @@ export default function CatLifeGame() {
 
     const currentList = [...dailyRankings, newEntry]
       .sort((a, b) => b.score - a.score)
-      .slice(0, 10); // TOP 10 まで
+      .slice(0, 10);
 
     setDailyRankings(currentList);
     localStorage.setItem(savedKey, JSON.stringify(currentList));
+
+    // スプレッドシートに送信
+    sendToSpreadsheet(scoreToSave, displayName);
     setIsTop10(false);
   };
 
@@ -374,10 +426,12 @@ export default function CatLifeGame() {
       const calculatedScore = (newStats.territory * 10) + (newAge * 50);
       setFinalScore(calculatedScore);
 
-      // デイリーランキングTOP10に入るかチェック（10件未満または10位よりスコアが高い場合）
       const lowestScore = dailyRankings.length < 10 ? 0 : dailyRankings[dailyRankings.length - 1].score;
       if (dailyRankings.length < 10 || calculatedScore > lowestScore) {
         setIsTop10(true);
+      } else {
+        // TOP10に入らなかった場合でもスプレッドシートには自動で「ゲスト」として記録を送る
+        sendToSpreadsheet(calculatedScore, 'ゲスト');
       }
       return;
     }
@@ -424,37 +478,67 @@ export default function CatLifeGame() {
     adminTopRight: { position: 'absolute', top: '16px', right: '16px', fontSize: '12px', color: '#d1d5db', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'none', transition: 'color 0.2s' }
   };
 
+  // --- 管理者ダッシュボード（全ユーザーのデータ閲覧） ---
   if (gameState === 'ADMIN') {
-    const analyticsRaw = localStorage.getItem('cat_game_analytics');
-    const analytics = analyticsRaw ? JSON.parse(analyticsRaw) : { totalPlays: 0, petCount: 0, strayCount: 0, deaths: [] };
-
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <h2 style={{ color: '#d97706', marginBottom: '20px', fontSize: '22px' }}>🔐 管理者ダッシュボード</h2>
+      <div style={{ minHeight: '100vh', backgroundColor: '#fffbeb', padding: '24px', fontFamily: 'sans-serif', color: '#1f2937' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: '#ffffff', padding: '24px', borderRadius: '24px', border: '2px solid #fde68a', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ color: '#d97706', fontSize: '22px', margin: 0 }}>🔐 管理者ダッシュボード（全ユーザー履歴）</h2>
+            <button onClick={() => setGameState('START')} style={{ padding: '8px 14px', borderRadius: '8px', background: '#f3f4f6', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 'bold' }}>✕ 閉じる</button>
+          </div>
+
           {!adminAuth ? (
-            <div>
+            <div style={{ maxWidth: '360px', margin: '40px auto', textAlign: 'center' }}>
               <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '12px' }}>管理者パスワードを入力してください</p>
               <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="パスワード" style={styles.input} />
               <button onClick={() => { if (adminPass === 'nekodash123') setAdminAuth(true); else alert('パスワードが違います'); }} style={styles.submitButton}>ログイン</button>
-              <button onClick={() => setGameState('START')} style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>トップに戻る</button>
             </div>
           ) : (
-            <div style={{ textAlign: 'left', fontSize: '14px' }}>
-              <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #fde68a' }}>
-                <p>📊 <b>総プレイ回数:</b> {analytics.totalPlays} 回</p>
-                <p>🏠 飼い猫選択: {analytics.petCount} 回</p>
-                <p>🐾 野良猫選択: {analytics.strayCount} 回</p>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>📊 スプレッドシート同期データ（総数: {allUsersData.length} 件）</p>
+                <button onClick={fetchAllUsersDataFromSS} style={{ padding: '6px 12px', backgroundColor: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>🔄 更新する</button>
               </div>
-              <h3 style={{ fontSize: '16px', color: '#1f2937', marginBottom: '8px' }}>📜 最近のプレイ・死亡ログ</h3>
-              <div style={{ maxHeight: '180px', overflowY: 'auto', backgroundColor: '#f9fafb', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}>
-                {analytics.deaths.slice().reverse().map((d, i) => (
-                  <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #e5e7eb' }}>
-                    <b>{d.type}</b> (寿命: {d.age}歳) - 死因: {d.reason} <span style={{ color: '#9ca3af', fontSize: '10px' }}>({d.date})</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setGameState('START')} style={{ ...styles.submitButton, marginTop: '20px' }}>ゲームに戻る</button>
+
+              {loadingLogs ? (
+                <p style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>データを読み込んでいます...</p>
+              ) : (
+                <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '12px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#fff7ed', borderBottom: '2px solid #fde68a', color: '#b45309' }}>
+                        <th style={{ padding: '10px' }}>日時</th>
+                        <th style={{ padding: '10px' }}>プレイヤー</th>
+                        <th style={{ padding: '10px' }}>猫の名前</th>
+                        <th style={{ padding: '10px' }}>種類</th>
+                        <th style={{ padding: '10px' }}>寿命</th>
+                        <th style={{ padding: '10px' }}>スコア</th>
+                        <th style={{ padding: '10px' }}>死因</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsersData.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>データがありません</td>
+                        </tr>
+                      ) : (
+                        allUsersData.map((d, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{ padding: '8px 10px', fontSize: '11px', color: '#6b7280' }}>{d.date}</td>
+                            <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>{d.player}</td>
+                            <td style={{ padding: '8px 10px' }}>{d.catName}</td>
+                            <td style={{ padding: '8px 10px' }}>{d.type}</td>
+                            <td style={{ padding: '8px 10px' }}>{d.age}歳</td>
+                            <td style={{ padding: '8px 10px', fontWeight: 'bold', color: '#d97706' }}>{d.score}pt</td>
+                            <td style={{ padding: '8px 10px', fontSize: '12px', color: '#dc2626' }}>{d.reason}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -466,13 +550,7 @@ export default function CatLifeGame() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <button 
-            onClick={() => setGameState('ADMIN')} 
-            style={styles.adminTopRight}
-            title="管理者ページ"
-          >
-            ⚙️ 管理
-          </button>
+          <button onClick={() => setGameState('ADMIN')} style={styles.adminTopRight} title="管理者ページ">⚙️ 管理</button>
 
           <div style={{ fontSize: '48px', marginBottom: '12px', marginTop: '8px' }}>🐱🐾</div>
           <h1 style={styles.title}>猫の人生シミュレーション</h1>
@@ -481,13 +559,7 @@ export default function CatLifeGame() {
           <form onSubmit={startGame}>
             <div style={{ textAlign: 'left', marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>名前</label>
-              <input 
-                type="text" 
-                value={catName} 
-                onChange={e => setCatName(e.target.value)} 
-                placeholder="空白時は自動でランダム生成（タマ、クロ、ミケ等）" 
-                style={styles.input} 
-              />
+              <input type="text" value={catName} onChange={e => setCatName(e.target.value)} placeholder="空白時は自動でランダム生成（タマ、クロ等）" style={styles.input} />
             </div>
             
             <div style={{ textAlign: 'left', marginBottom: '24px' }}>
@@ -501,7 +573,6 @@ export default function CatLifeGame() {
             <button type="submit" style={styles.submitButton}>✨ 人生を始める</button>
           </form>
 
-          {/* デイリーオンラインランキング (Top 10) */}
           <div style={{ marginTop: '20px', textAlign: 'left', backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #fde68a' }}>
             <p style={{ fontWeight: 'bold', color: '#b45309', fontSize: '12px', marginBottom: '6px' }}>🌍 デイリーランキング (Top 10)</p>
             {dailyRankings.length === 0 ? (
@@ -588,33 +659,17 @@ export default function CatLifeGame() {
         <p style={{ fontSize: '16px', color: '#d97706', fontWeight: 'bold', marginBottom: '10px' }}>{catName} は {age} 歳で虹の橋を渡りました。</p>
         <p style={{ fontSize: '13px', color: '#dc2626', fontWeight: 'bold', marginBottom: '14px', backgroundColor: '#fef2f2', padding: '8px', borderRadius: '8px', border: '1px solid #fecaca' }}>💀 死因: {causeOfDeath}</p>
         
-        {/* TOP10イン時のお名前入力ポップアップ部分 */}
         {isTop10 ? (
           <div style={{ backgroundColor: '#f0fdf4', padding: '14px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #bbf7d0', textAlign: 'left' }}>
-            <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>
-              🎉 デイリーランキング TOP10 入賞！
-            </p>
-            <p style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>登録するユーザー名を入力してください（空白なら「ゲスト」になります）</p>
-            <input 
-              type="text" 
-              value={playerNameInput} 
-              onChange={e => setPlayerNameInput(e.target.value)} 
-              placeholder="ユーザー名（例: プレイヤーA）" 
-              style={{ ...styles.input, marginBottom: '10px', padding: '8px 12px', fontSize: '14px' }} 
-            />
-            <button 
-              onClick={() => saveDailyRanking(finalScore, playerNameInput)}
-              style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}
-            >
-              ランキングに登録する
-            </button>
+            <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>🎉 デイリーランキング TOP10 入賞！</p>
+            <p style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>登録するプレイヤー名（空白なら「ゲスト」）</p>
+            <input type="text" value={playerNameInput} onChange={e => setPlayerNameInput(e.target.value)} placeholder="例: プレイヤーA" style={{ ...styles.input, marginBottom: '10px', padding: '8px 12px', fontSize: '14px' }} />
+            <button onClick={() => saveDailyRankingAndSS(finalScore, playerNameInput)} style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>ランキングとシートに登録する</button>
           </div>
         ) : (
           <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #fde68a', textAlign: 'left' }}>
-            <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', marginBottom: '6px' }}>
-              🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{finalScore} pt</span>
-            </p>
-            <p style={{ fontSize: '11px', color: '#c2410c' }}>デイリーランキングに記録されました！</p>
+            <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', marginBottom: '6px' }}>🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{finalScore} pt</span></p>
+            <p style={{ fontSize: '11px', color: '#c2410c' }}>プレイデータがスプレッドシートに記録されました！</p>
           </div>
         )}
 
