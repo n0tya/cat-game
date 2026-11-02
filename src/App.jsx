@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- イベントデータベース（野良猫・飼い猫合わせて40種類） ---
+// --- イベントデータベース ---
 const EVENT_DB = {
   stray: [
     { id: 's1', cond: () => true, text: 'ゴミ捨て場で美味しそうな匂いがする。', choices: [
@@ -393,12 +393,13 @@ export default function CatLifeGame() {
   };
 
   const styles = {
-    container: { minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1f2937', padding: '24px', boxSizing: 'border-box' },
-    card: { backgroundColor: '#ffffff', padding: '40px 32px', borderRadius: '24px', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)', maxWidth: '480px', width: '100%', textAlign: 'center', border: '2px solid #fde68a', boxSizing: 'border-box' },
-    title: { fontSize: '32px', fontWeight: '900', color: '#d97706', marginBottom: '8px' },
-    input: { width: '100%', padding: '14px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '12px', marginBottom: '24px', boxSizing: 'border-box', outline: 'none' },
+    container: { minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1f2937', padding: '16px', boxSizing: 'border-box' },
+    card: { backgroundColor: '#ffffff', padding: '32px 24px', borderRadius: '24px', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)', maxWidth: '480px', width: '100%', textAlign: 'center', border: '2px solid #fde68a', boxSizing: 'border-box', position: 'relative' },
+    title: { fontSize: '28px', fontWeight: '900', color: '#d97706', marginBottom: '8px' },
+    input: { width: '100%', padding: '12px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '12px', marginBottom: '20px', boxSizing: 'border-box', outline: 'none' },
     submitButton: { width: '100%', padding: '16px', fontSize: '18px', fontWeight: 'bold', backgroundColor: '#ea580c', color: '#ffffff', border: 'none', borderRadius: '14px', cursor: 'pointer', marginBottom: '10px' },
-    adminLink: { marginTop: '16px', fontSize: '13px', color: '#9ca3af', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline' }
+    // 右上に配置する目立たない管理者リンク
+    adminTopRight: { position: 'absolute', top: '16px', right: '16px', fontSize: '12px', color: '#d1d5db', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'none', transition: 'color 0.2s' }
   };
 
   if (gameState === 'ADMIN') {
@@ -408,13 +409,13 @@ export default function CatLifeGame() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <h2 style={{ color: '#d97706', marginBottom: '20px' }}>🔐 管理者ダッシュボード</h2>
+          <h2 style={{ color: '#d97706', marginBottom: '20px', fontSize: '22px' }}>🔐 管理者ダッシュボード</h2>
           {!adminAuth ? (
             <div>
               <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '12px' }}>管理者パスワードを入力してください</p>
               <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="パスワード" style={styles.input} />
               <button onClick={() => { if (adminPass === 'nekodash123') setAdminAuth(true); else alert('パスワードが違います'); }} style={styles.submitButton}>ログイン</button>
-              <button onClick={() => setGameState('START')} style={{ ...styles.adminLink, display: 'block', width: '100%' }}>トップに戻る</button>
+              <button onClick={() => setGameState('START')} style={{ marginTop: '12px', fontSize: '13px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>トップに戻る</button>
             </div>
           ) : (
             <div style={{ textAlign: 'left', fontSize: '14px' }}>
@@ -424,7 +425,7 @@ export default function CatLifeGame() {
                 <p>🐾 野良猫選択: {analytics.strayCount} 回</p>
               </div>
               <h3 style={{ fontSize: '16px', color: '#1f2937', marginBottom: '8px' }}>📜 最近のプレイ・死亡ログ</h3>
-              <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#f9fafb', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}>
+              <div style={{ maxHeight: '180px', overflowY: 'auto', backgroundColor: '#f9fafb', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}>
                 {analytics.deaths.slice().reverse().map((d, i) => (
                   <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #e5e7eb' }}>
                     <b>{d.type}</b> (寿命: {d.age}歳) - 死因: {d.reason} <span style={{ color: '#9ca3af', fontSize: '10px' }}>({d.date})</span>
@@ -443,21 +444,32 @@ export default function CatLifeGame() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🐱🐾</div>
+          {/* 右上の目立たない管理者ボタン */}
+          <button 
+            onClick={() => setGameState('ADMIN')} 
+            style={styles.adminTopRight}
+            title="管理者ページ"
+            onMouseOver={(e) => e.target.style.color = '#9ca3af'}
+            onMouseOut={(e) => e.target.style.color = '#d1d5db'}
+          >
+            ⚙️ 管理
+          </button>
+
+          <div style={{ fontSize: '48px', marginBottom: '12px', marginTop: '8px' }}>🐱🐾</div>
           <h1 style={styles.title}>猫の人生シミュレーション</h1>
-          <p style={{ fontSize: '15px', color: '#4b5563', marginBottom: '28px' }}>あなたの猫生はどんな物語になるでしょうか？</p>
+          <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '24px' }}>あなたの猫生はどんな物語になるでしょうか？</p>
           
           <form onSubmit={startGame}>
-            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>名前</label>
+            <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>名前</label>
               <input type="text" value={catName} onChange={e => setCatName(e.target.value)} placeholder="例: タマ" style={styles.input} />
             </div>
             
-            <div style={{ textAlign: 'left', marginBottom: '28px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>生き方を選ぶ</label>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setCatType('pet')} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: catType === 'pet' ? '2px solid #d97706' : '2px solid #e5e7eb', background: catType === 'pet' ? '#fff7ed' : '#fff' }}>🏠 飼い猫</button>
-                <button type="button" onClick={() => setCatType('stray')} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: catType === 'stray' ? '2px solid #d97706' : '2px solid #e5e7eb', background: catType === 'stray' ? '#fff7ed' : '#fff' }}>🐾 野良猫</button>
+            <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>生き方を選ぶ</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" onClick={() => setCatType('pet')} style={{ flex: 1, padding: '12px', borderRadius: '12px', fontSize: '15px', border: catType === 'pet' ? '2px solid #d97706' : '2px solid #e5e7eb', background: catType === 'pet' ? '#fff7ed' : '#fff', cursor: 'pointer' }}>🏠 飼い猫</button>
+                <button type="button" onClick={() => setCatType('stray')} style={{ flex: 1, padding: '12px', borderRadius: '12px', fontSize: '15px', border: catType === 'stray' ? '2px solid #d97706' : '2px solid #e5e7eb', background: catType === 'stray' ? '#fff7ed' : '#fff', cursor: 'pointer' }}>🐾 野良猫</button>
               </div>
             </div>
 
@@ -465,18 +477,16 @@ export default function CatLifeGame() {
           </form>
 
           {rankings.length > 0 && (
-            <div style={{ marginTop: '24px', textAlign: 'left', backgroundColor: '#fff7ed', padding: '14px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
-              <p style={{ fontWeight: 'bold', color: '#b45309', fontSize: '13px', marginBottom: '6px' }}>🏆 ローカル殿堂入り (Top 5)</p>
+            <div style={{ marginTop: '20px', textAlign: 'left', backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
+              <p style={{ fontWeight: 'bold', color: '#b45309', fontSize: '12px', marginBottom: '6px' }}>🏆 ローカル殿堂入り (Top 5)</p>
               {rankings.map((r, i) => (
-                <div key={i} style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px dashed #fed7aa' }}>
+                <div key={i} style={{ fontSize: '11px', display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: '1px dashed #fed7aa' }}>
                   <span>{i + 1}. {r.name} ({r.type}) - {r.age}歳</span>
                   <span style={{ fontWeight: 'bold', color: '#d97706' }}>{r.score} pt</span>
                 </div>
               ))}
             </div>
           )}
-
-          <button onClick={() => setGameState('ADMIN')} style={styles.adminLink}>管理者ダッシュボード</button>
         </div>
       </div>
     );
@@ -484,34 +494,54 @@ export default function CatLifeGame() {
 
   if (gameState === 'PLAYING') {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', justifyContent: 'center', padding: '32px 16px', boxSizing: 'border-box' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}>
         <div style={{ width: '100%', maxWidth: '640px' }}>
-          <div style={{ backgroundColor: '#ffffff', padding: '20px 24px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', border: '1px solid #fef3c7' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '16px 20px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', border: '1px solid #fef3c7', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#d97706', margin: '0 0 4px 0' }}>{catName} ({catType === 'pet' ? '🏠 飼い猫' : '🐾 野良猫'})</h2>
-              <p style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>📅 現在: {age} 歳</p>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#d97706', margin: '0 0 2px 0' }}>{catName} <span style={{ fontSize: '13px', color: '#6b7280' }}>({catType === 'pet' ? '🏠 飼い猫' : '🐾 野良猫'})</span></h2>
+              <p style={{ fontSize: '17px', fontWeight: '800', margin: 0 }}>📅 現在: {age} 歳</p>
             </div>
-            <div style={{ textAlign: 'right', fontSize: '13px', color: '#4b5563', fontWeight: '600' }}>
-              <div>❤️ 体力: {stats.health}</div>
-              <div>⚡ ストレス: {stats.stress}</div>
-              <div style={{ color: '#d97706', fontWeight: 'bold' }}>🏰 縄張り: {stats.territory}pt</div>
+            <div style={{ textAlign: 'right', fontSize: '12px', color: '#4b5563', fontWeight: '600' }}>
+              <div>❤️ 体力: {stats.health} | ⚡ ストレス: {stats.stress}</div>
+              <div style={{ color: '#d97706', fontWeight: 'bold', marginTop: '2px' }}>🏰 縄張り: {stats.territory}pt</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
-            {[{ label: '⏸️ 停止', val: 0 }, { label: '▶️ x1', val: 1 }, { label: '▶️ x5', val: 5 }].map(s => (
-              <button key={s.val} onClick={() => setSpeed(s.val)} style={{ padding: '8px 14px', borderRadius: '8px', background: speed === s.val ? '#d97706' : '#fff', color: speed === s.val ? '#fff' : '#374151', border: '1px solid #d1d5db' }}>{s.label}</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            {[
+              { label: '⏸️ 停止', val: 0 },
+              { label: '▶️ x0.5', val: 0.5 },
+              { label: '▶️ x1', val: 1 },
+              { label: '▶️ x2', val: 2 },
+              { label: '▶️ x5', val: 5 }
+            ].map(s => (
+              <button 
+                key={s.val} 
+                onClick={() => setSpeed(s.val)} 
+                style={{ 
+                  padding: '6px 10px', 
+                  borderRadius: '8px', 
+                  fontSize: '12px',
+                  background: speed === s.val ? '#d97706' : '#fff', 
+                  color: speed === s.val ? '#fff' : '#374151', 
+                  border: speed === s.val ? '2px solid #d97706' : '1px solid #d1d5db',
+                  cursor: 'pointer',
+                  fontWeight: speed === s.val ? 'bold' : 'normal'
+                }}
+              >
+                {s.label}
+              </button>
             ))}
           </div>
 
-          <div style={{ backgroundColor: '#ffffff', padding: '32px 24px', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #fef3c7' }}>
-            <h3 style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', marginBottom: '24px' }}>{currentEvent?.text}</h3>
-            <div style={{ width: '100%', backgroundColor: '#f3f4f6', height: '10px', borderRadius: '5px', marginBottom: '24px', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '24px 20px', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', marginBottom: '16px', border: '1px solid #fef3c7' }}>
+            <h3 style={{ fontSize: '19px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px', lineHeight: '1.4' }}>{currentEvent?.text}</h3>
+            <div style={{ width: '100%', backgroundColor: '#f3f4f6', height: '8px', borderRadius: '4px', marginBottom: '20px', overflow: 'hidden' }}>
               <div style={{ backgroundColor: '#f59e0b', height: '100%', width: `${(timeLeft / 5) * 100}%`, transition: 'width 0.1s linear' }}></div>
             </div>
             <div>
               {currentEvent?.choices.map((choice, idx) => (
-                <button key={idx} onClick={() => handleChoice(choice)} style={{ width: '100%', textAlign: 'left', padding: '18px 20px', marginBottom: '14px', borderRadius: '12px', border: idx === 0 ? '3px solid #f59e0b' : '2px solid #e5e7eb', background: idx === 0 ? '#fffbeb' : '#f9fafb', fontWeight: '600', cursor: 'pointer' }}>
+                <button key={idx} onClick={() => handleChoice(choice)} style={{ width: '100%', textAlign: 'left', padding: '16px 18px', marginBottom: '12px', borderRadius: '12px', border: idx === 0 ? '3px solid #f59e0b' : '2px solid #e5e7eb', background: idx === 0 ? '#fffbeb' : '#f9fafb', fontSize: '15px', fontWeight: '600', cursor: 'pointer', lineHeight: '1.4' }}>
                   {choice.text}
                 </button>
               ))}
@@ -525,13 +555,30 @@ export default function CatLifeGame() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <div style={{ fontSize: '56px', marginBottom: '12px' }}>{EMOJIS[Math.floor(Math.random() * EMOJIS.length)]}</div>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '4px' }}>猫生終了</h1>
-        <p style={{ fontSize: '18px', color: '#d97706', fontWeight: 'bold', marginBottom: '12px' }}>{catName} は {age} 歳で虹の橋を渡りました。</p>
-        <p style={{ fontSize: '14px', color: '#dc2626', fontWeight: 'bold', marginBottom: '16px' }}>💀 死因: {causeOfDeath}</p>
+        <div style={{ fontSize: '48px', marginBottom: '8px' }}>{EMOJIS[Math.floor(Math.random() * EMOJIS.length)]}</div>
+        {/* スマホでもはっきりと視認できる濃い文字色に変更 */}
+        <h1 style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: '#1f2937' }}>猫生終了</h1>
+        <p style={{ fontSize: '16px', color: '#d97706', fontWeight: 'bold', marginBottom: '10px' }}>{catName} は {age} 歳で虹の橋を渡りました。</p>
+        <p style={{ fontSize: '13px', color: '#dc2626', fontWeight: 'bold', marginBottom: '14px', backgroundColor: '#fef2f2', padding: '8px', borderRadius: '8px', border: '1px solid #fecaca' }}>💀 死因: {causeOfDeath}</p>
         
-        <button onClick={shareToX} style={{ width: '100%', padding: '14px', background: '#000', color: '#fff', fontWeight: 'bold', borderRadius: '14px', border: 'none', marginBottom: '10px', cursor: 'pointer' }}>𝕏 で結果をシェアする</button>
-        <button onClick={() => setGameState('START')} style={styles.submitButton}>🔄 新たな人生を始める</button>
+        {/* 結果画面のローカルランキング表示 */}
+        <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #fde68a', textAlign: 'left' }}>
+          <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', marginBottom: '6px' }}>
+            🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{(stats.territory * 10) + (age * 50)} pt</span>
+          </p>
+          <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '6px', marginTop: '6px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#b45309', marginBottom: '4px' }}>ローカルランキング (Top 5)</p>
+            {rankings.map((r, i) => (
+              <div key={i} style={{ fontSize: '11px', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                <span>{i + 1}. {r.name} ({r.age}歳)</span>
+                <span style={{ fontWeight: 'bold', color: '#d97706' }}>{r.score} pt</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={shareToX} style={{ width: '100%', padding: '12px', background: '#000', color: '#fff', fontWeight: 'bold', borderRadius: '14px', border: 'none', marginBottom: '8px', cursor: 'pointer', fontSize: '15px' }}>𝕏 で結果をシェアする</button>
+        <button onClick={() => setGameState('START')} style={{ ...styles.submitButton, padding: '12px', fontSize: '16px' }}>🔄 新たな人生を始める</button>
       </div>
     </div>
   );
