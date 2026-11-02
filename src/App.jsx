@@ -228,7 +228,7 @@ export default function CatLifeGame() {
   const [dailyRankings, setDailyRankings] = useState([]);
   const [isTop10, setIsTop10] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState('');
-  const [isRegistered, setIsRegistered] = useState(false); // 登録完了状態を管理
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(5.0);
   const [speed, setSpeed] = useState(1); 
@@ -299,7 +299,7 @@ export default function CatLifeGame() {
     setDailyRankings(currentList);
     localStorage.setItem(savedKey, JSON.stringify(currentList));
     sendToSpreadsheet(scoreToSave, displayName);
-    setIsRegistered(true); // 登録完了フラグをON
+    setIsRegistered(true);
   };
 
   const startGame = (e) => {
@@ -320,6 +320,7 @@ export default function CatLifeGame() {
     setHistory([]);
     setCauseOfDeath('');
     setIsRegistered(false);
+    setIsTop10(false);
     setGameState('PLAYING');
     setSpeed(1);
     pickNextEvent(catType, [], { health: 100, stress: 0, humanTrust: 50, territory: 10 });
@@ -402,6 +403,7 @@ export default function CatLifeGame() {
       if (dailyRankings.length < 10 || calculatedScore > lowestScore) {
         setIsTop10(true);
       } else {
+        setIsTop10(false);
         sendToSpreadsheet(calculatedScore, 'ゲスト');
       }
       return;
