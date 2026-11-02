@@ -200,7 +200,7 @@ const EVENT_DB = {
     ]},
     { id: 'p19', cond: () => true, text: 'お風呂上がりの飼い主の足に、なぜか飛びつきたくなった。', choices: [
       { text: '隙をついて飛びつき、ハンターの腕前を見せる', stat: { health: 0, stress: -10, humanTrust: -5, territory: 10 }, log: '飼い主に「痛っ！」と言われて満足した。' },
-      { text: '足の匂いはくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
+      { text: '足の匂いをくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
       { text: '完全無視して毛づくろいをする', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: 'クールにスルーした。' }
     ]},
     { id: 'p20', cond: () => true, text: 'お部屋の模様替えが行われ、家具の位置が変わった！', choices: [
@@ -228,6 +228,7 @@ export default function CatLifeGame() {
   const [dailyRankings, setDailyRankings] = useState([]);
   const [isTop10, setIsTop10] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState('');
+  const [isRegistered, setIsRegistered] = useState(false); // 登録完了状態を管理
 
   const [timeLeft, setTimeLeft] = useState(5.0);
   const [speed, setSpeed] = useState(1); 
@@ -298,7 +299,7 @@ export default function CatLifeGame() {
     setDailyRankings(currentList);
     localStorage.setItem(savedKey, JSON.stringify(currentList));
     sendToSpreadsheet(scoreToSave, displayName);
-    setIsTop10(false);
+    setIsRegistered(true); // 登録完了フラグをON
   };
 
   const startGame = (e) => {
@@ -318,6 +319,7 @@ export default function CatLifeGame() {
     setUsedEvents([]);
     setHistory([]);
     setCauseOfDeath('');
+    setIsRegistered(false);
     setGameState('PLAYING');
     setSpeed(1);
     pickNextEvent(catType, [], { health: 100, stress: 0, humanTrust: 50, territory: 10 });
@@ -394,6 +396,7 @@ export default function CatLifeGame() {
       setGameState('GAMEOVER');
       const calculatedScore = (newStats.territory * 10) + (newAge * 50);
       setFinalScore(calculatedScore);
+      setIsRegistered(false);
 
       const lowestScore = dailyRankings.length < 10 ? 0 : dailyRankings[dailyRankings.length - 1].score;
       if (dailyRankings.length < 10 || calculatedScore > lowestScore) {
@@ -558,15 +561,21 @@ export default function CatLifeGame() {
         
         {isTop10 ? (
           <div style={{ backgroundColor: '#f0fdf4', padding: '14px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #bbf7d0', textAlign: 'left' }}>
-            <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>🎉 デイリーランキング TOP10 入賞！</p>
-            <p style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>登録するプレイヤー名（空白なら「ゲスト」）</p>
-            <input type="text" value={playerNameInput} onChange={e => setPlayerNameInput(e.target.value)} placeholder="例: プレイヤーA" style={{ ...styles.input, marginBottom: '10px', padding: '8px 12px', fontSize: '14px' }} />
-            <button onClick={() => saveDailyRankingAndSS(finalScore, playerNameInput)} style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>ランキングに登録</button>
+            {isRegistered ? (
+              <p style={{ fontSize: '14px', color: '#166534', fontWeight: 'bold', textAlign: 'center', padding: '10px 0' }}>✨ ランキングに登録されました！</p>
+            ) : (
+              <>
+                <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>🎉 デイリーランキング TOP10 入賞！</p>
+                <p style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>登録するプレイヤー名（空白なら「ゲスト」）</p>
+                <input type="text" value={playerNameInput} onChange={e => setPlayerNameInput(e.target.value)} placeholder="例: プレイヤーA" style={{ ...styles.input, marginBottom: '10px', padding: '8px 12px', fontSize: '14px' }} />
+                <button onClick={() => saveDailyRankingAndSS(finalScore, playerNameInput)} style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>ランキングに登録</button>
+              </>
+            )}
           </div>
         ) : (
           <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #fde68a', textAlign: 'left' }}>
             <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', marginBottom: '6px' }}>🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{finalScore} pt</span></p>
-            <p style={{ fontSize: '11px', color: '#c2410c' }}>プレイデータがスプレッドシートに記録されました！</p>
+            <p style={{ fontSize: '11px', color: '#c2410c' }}>次はどんな猫生を歩んでみる？</p>
           </div>
         )}
 
