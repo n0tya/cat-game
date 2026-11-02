@@ -200,7 +200,7 @@ const EVENT_DB = {
     ]},
     { id: 'p19', cond: () => true, text: 'お風呂上がりの飼い主の足に、なぜか飛びつきたくなった。', choices: [
       { text: '隙をついて飛びつき、ハンターの腕前を見せる', stat: { health: 0, stress: -10, humanTrust: -5, territory: 10 }, log: '飼い主に「痛っ！」と言われて満足した。' },
-      { text: '足の匂いをくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
+      { text: '足の匂いはくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
       { text: '完全無視して毛づくろいをする', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: 'クールにスルーした。' }
     ]},
     { id: 'p20', cond: () => true, text: 'お部屋の模様替えが行われ、家具の位置が変わった！', choices: [
@@ -254,6 +254,18 @@ export default function CatLifeGame() {
       localStorage.setItem(savedKey, JSON.stringify(initialRankings));
     }
   }, []);
+
+  // 上位何％かを計算する関数（仮定の総プレーヤー数ベース、またはランキング内での位置）
+  // ここではデイリーランキングのデータ（最小10件など）を基に、よりリアルな母数を想定して算出します
+  const calculatePercentile = (score) => {
+    // ランキング内の全スコアと比較
+    const allScores = [...dailyRankings.map(r => r.score), score].sort((a, b) => b - a);
+    const rank = allScores.indexOf(score) + 1;
+    const totalPlayers = Math.max(100, dailyRankings.length * 10); // 想定母数
+    const calculatedRank = Math.min(totalPlayers, Math.max(1, Math.round((rank / dailyRankings.length) * 15)));
+    const percentile = Math.max(1, Math.min(100, Math.round((calculatedRank / totalPlayers) * 100)));
+    return percentile;
+  };
 
   const sendToSpreadsheet = async (scoreToSave, customUserName) => {
     if (!GAS_URL || GAS_URL.includes("ここにGASの")) return;
@@ -430,12 +442,13 @@ export default function CatLifeGame() {
 
   const shareToX = () => {
     const currentUrl = window.location.href;
+    const percentile = calculatePercentile(finalScore);
     const text = encodeURIComponent(
       `猫の人生シミュレーションで遊んだよ！\n\n` +
       `🐱 名前: ${catName} (${catType === 'pet' ? '飼い猫' : '野良猫'})\n` +
       `📅 寿命: ${age}歳\n` +
       `💀 死因: ${causeOfDeath}\n` +
-      `🏰 スコア: ${finalScore}pt\n\n` +
+      `🏰 スコア: ${finalScore}pt (上位 ${percentile}%)\n\n` +
       `#猫の人生シミュレーション\n` +
       `${currentUrl}`
     );
@@ -553,6 +566,8 @@ export default function CatLifeGame() {
     );
   }
 
+  const currentPercentile = calculatePercentile(finalScore);
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -567,7 +582,7 @@ export default function CatLifeGame() {
               <p style={{ fontSize: '14px', color: '#166534', fontWeight: 'bold', textAlign: 'center', padding: '10px 0' }}>✨ ランキングに登録されました！</p>
             ) : (
               <>
-                <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>🎉 デイリーランキング TOP10 入賞！</p>
+                <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>🎉 デイリーランキング TOP10 入賞！ (上位 {currentPercentile}%)</p>
                 <p style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>登録するプレイヤー名（空白なら「ゲスト」）</p>
                 <input type="text" value={playerNameInput} onChange={e => setPlayerNameInput(e.target.value)} placeholder="例: プレイヤーA" style={{ ...styles.input, marginBottom: '10px', padding: '8px 12px', fontSize: '14px' }} />
                 <button onClick={() => saveDailyRankingAndSS(finalScore, playerNameInput)} style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>ランキングに登録</button>
@@ -576,8 +591,11 @@ export default function CatLifeGame() {
           </div>
         ) : (
           <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #fde68a', textAlign: 'left' }}>
-            <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', marginBottom: '6px' }}>🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{finalScore} pt</span></p>
-            <p style={{ fontSize: '11px', color: '#c2410c' }}>次はどんな猫生を歩んでみる？</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', margin: 0 }}>🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{finalScore} pt</span></p>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fde68a', color: '#b45309', padding: '2px 8px', borderRadius: '6px' }}>上位 {currentPercentile}%</span>
+            </div>
+            <p style={{ fontSize: '11px', color: '#c2410c', margin: 0 }}>次はどんな猫生を歩んでみる？</p>
           </div>
         )}
 
