@@ -55,56 +55,6 @@ const EVENT_DB = {
       { text: '勇敢に立ち向かう', stat: { health: -15, stress: 15, humanTrust: 0, territory: 10 }, log: 'カラスを追い払い、縄張りを守り抜いた！' },
       { text: 'こっそり横取りする', stat: { health: 5, stress: 5, humanTrust: 0, territory: 2 }, log: 'うまく立ち回ってご飯にありついた。' },
       { text: '別の場所を探す', stat: { health: -5, stress: 0, humanTrust: 0, territory: -5 }, log: 'すごすごと引き下がった。' }
-    ]},
-    { id: 's11', cond: (s) => s.humanTrust < 20, text: '子供たちが追いかけてきた！', choices: [
-      { text: '全速力で塀の上に逃げる', stat: { health: -5, stress: 15, humanTrust: -10, territory: 5 }, log: '高所から安全に威圧した。' },
-      { text: '威嚇して脅かす', stat: { health: 0, stress: 10, humanTrust: -15, territory: 8 }, log: '子供たちが怖がって近寄らなくなった。' },
-      { text: '隠れてやり過ごす', stat: { health: 0, stress: 5, humanTrust: -5, territory: 0 }, log: 'やり過ごした。' }
-    ]},
-    { id: 's12', cond: () => true, text: '知らない猫がテリトリーに入ってきた。', choices: [
-      { text: '睨みつけて追い返す', stat: { health: -5, stress: 10, humanTrust: 0, territory: 10 }, log: '圧倒的なオーラで追い払った。' },
-      { text: 'お互いスルーする', stat: { health: 0, stress: 0, humanTrust: 0, territory: -2 }, log: '領域を少し分け合った。' },
-      { text: '場所を譲る', stat: { health: 0, stress: -5, humanTrust: 0, territory: -10 }, log: '縄張りが狭くなってしまった。' }
-    ]},
-    { id: 's13', cond: (s) => s.humanTrust > 50, text: '人間が「うちにおいで」とケージを開けている。', choices: [
-      { text: '思い切って入ってみる', stat: { health: 50, stress: -30, humanTrust: 30, territory: 20 }, log: '家猫としての新しい縄張りを手に入れた！' },
-      { text: '外の自由を選ぶ', stat: { health: 0, stress: 0, humanTrust: 0, territory: 10 }, log: '自由な野良猫の生き様を選んだ。' },
-      { text: 'ご飯だけ持ち逃げする', stat: { health: 10, stress: 0, humanTrust: -10, territory: 5 }, log: 'うまく戦利品を持ち帰った。' }
-    ]},
-    { id: 's14', cond: () => true, text: '暖かい車のボンネットを見つけた。', choices: [
-      { text: '中に入って寝る', stat: { health: -20, stress: 20, humanTrust: 0, territory: 0 }, log: 'エンジン始動に驚いて飛び出した！' },
-      { text: '上で優雅に眠る', stat: { health: 5, stress: -5, humanTrust: 0, territory: 5 }, log: '最高の特等席として自分の匂いを残した。' },
-      { text: '警戒してやめる', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '安全な場所で寝た。' }
-    ]},
-    { id: 's15', cond: () => true, text: 'マタタビの生えた一角を見つけた。', choices: [
-      { text: '全力で満喫する', stat: { health: 5, stress: -20, humanTrust: 0, territory: 10 }, log: '最高のスポットを自分の縄張りにした！' },
-      { text: '少しだけ楽しむ', stat: { health: 5, stress: -10, humanTrust: 0, territory: 3 }, log: 'リフレッシュできた。' },
-      { text: 'スルーする', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: 'クールに立ち去った。' }
-    ]},
-    { id: 's16', cond: () => true, text: '夜の商店街の裏手で、焼き鳥の匂いが漂ってきた。', choices: [
-      { text: '店員さんにおねだりする', stat: { health: 10, stress: -5, humanTrust: 10, territory: 3 }, log: '優しい店員さんがおすそ分けをくれた！' },
-      { text: '焼き鳥の串をこっそり狙う', stat: { health: 5, stress: 5, humanTrust: -5, territory: 5 }, log: '見事なタイミングで肉片をゲットした。' },
-      { text: '野良猫としてのプライドでスルー', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '匂いだけで我慢した。' }
-    ]},
-    { id: 's17', cond: () => true, text: '激しい野良猫同士の縄張り争いが起きた！', choices: [
-      { text: '真っ向から勝負挑む', stat: { health: -15, stress: 15, humanTrust: 0, territory: 20 }, log: '激闘の末に勝利し、広大な縄張りを手に入れた！' },
-      { text: 'うまく隙をついて威嚇だけする', stat: { health: -5, stress: 5, humanTrust: 0, territory: 5 }, log: '大きな怪我をせずに追い払った。' },
-      { text: '深入りせず引き下がる', stat: { health: 0, stress: -5, humanTrust: 0, territory: -5 }, log: '安全第一でやり過ごした。' }
-    ]},
-    { id: 's18', cond: () => true, text: '親切な動物ボランティアの人が保護器（TNR用）を置いていった。', choices: [
-      { text: '中に仕掛けられたチュールに釣られる', stat: { health: 20, stress: -10, humanTrust: 15, territory: -5 }, log: '病院で健康診断と手術を受け、安全な地域猫に認定された！' },
-      { text: '不穏な気配を察知して近寄らない', stat: { health: 0, stress: 5, humanTrust: -5, territory: 0 }, log: '罠を華麗にスルーした。' },
-      { text: '他の猫が捕まるのを遠くで見守る', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '人間の動きを冷静に観察した。' }
-    ]},
-    { id: 's19', cond: () => true, text: '神社の境内で日向ぼっこをしていたら、観光客が群がってきた。', choices: [
-      { text: '堂々と撫でさせてアイドルになる', stat: { health: 5, stress: -15, humanTrust: 20, territory: 10 }, log: '「看板猫」として参拝客に可愛がられた！' },
-      { text: '少し撫でられてから優雅に去る', stat: { health: 5, stress: -5, humanTrust: 10, territory: 2 }, log: '程よくコミュニケーションを取った。' },
-      { text: '木の上に登って完全に無視する', stat: { health: 0, stress: 5, humanTrust: -5, territory: 0 }, log: '人間嫌いをアピールした。' }
-    ]},
-    { id: 's20', cond: () => true, text: '夜中にドブ川の側溝に落ちてしまった！', choices: [
-      { text: '必死に壁をよじ登る', stat: { health: -20, stress: 25, humanTrust: 0, territory: 0 }, log: '満身創痍になりながら脱出に成功した。' },
-      { text: '大声で助けを呼ぶ', stat: { health: 0, stress: 15, humanTrust: 15, territory: 0 }, log: '通りすがりの夜間散歩の人が助けてくれた！' },
-      { text: '諦めて朝までじっと耐える', stat: { health: -10, stress: 20, humanTrust: 0, territory: -5 }, log: '精神的にかなりすり減った…。' }
     ]}
   ],
   pet: [
@@ -157,56 +107,6 @@ const EVENT_DB = {
       { text: '堂々と玄関でお出迎えする', stat: { health: 5, stress: -10, humanTrust: 10, territory: 20 }, log: '「この家の主はこの私だ」と知らしめた！' },
       { text: '遠くから観察する', stat: { health: 0, stress: 5, humanTrust: 0, territory: 5 }, log: '安全な場所から見張った。' },
       { text: '押し入れにこもる', stat: { health: 0, stress: 10, humanTrust: 0, territory: -5 }, log: '籠城した。' }
-    ]},
-    { id: 'p11', cond: () => true, text: '掃除機という怪物が現れた！', choices: [
-      { text: '高いところから誇らしく見下ろす', stat: { health: 0, stress: 5, humanTrust: 0, territory: 10 }, log: '王者の風格で見守った。' },
-      { text: '猛ダッシュで逃げる', stat: { health: -5, stress: 10, humanTrust: 0, territory: -5 }, log: '恐れて逃げ回った。' },
-      { text: '動じずに居座る', stat: { health: 0, stress: -5, humanTrust: 5, territory: 15 }, log: '怪物をむしろ圧倒した。' }
-    ]},
-    { id: 'p12', cond: () => true, text: 'ブラッシングの時間だ。', choices: [
-      { text: 'ゴロゴロ喉を鳴らして甘える', stat: { health: 15, stress: -15, humanTrust: 10, territory: 5 }, log: '極上のリラックスタイムを満喫した。' },
-      { text: 'ブラシに猫パンチする', stat: { health: 0, stress: 5, humanTrust: -5, territory: 5 }, log: '反抗してみせた。' },
-      { text: '全力で逃走する', stat: { health: -5, stress: 10, humanTrust: -5, territory: 0 }, log: '捕まえられた。' }
-    ]},
-    { id: 'p13', cond: (s) => s.health < 60, text: '少し体調が優れない…。', choices: [
-      { text: '飼い主に甘えてアピールする', stat: { health: 30, stress: -5, humanTrust: 15, territory: 5 }, log: 'すぐに病院に連れて行ってもらい万全に。' },
-      { text: 'お気に入りの隠れ家でじっと耐える', stat: { health: -10, stress: 10, humanTrust: 0, territory: 5 }, log: '自力で耐え抜いた。' },
-      { text: '猫草を食べる', stat: { health: 10, stress: 0, humanTrust: 0, territory: 0 }, log: 'すっきり快復した。' }
-    ]},
-    { id: 'p14', cond: () => true, text: '玄関のドアが少し開いている！', choices: [
-      { text: '堂々と玄関の警備に向かう', stat: { health: 0, stress: -5, humanTrust: 5, territory: 15 }, log: '外の異常がないかしっかりチェックした。' },
-      { text: '飛び出して大慌てで連れ戻される', stat: { health: -10, stress: 20, humanTrust: -5, territory: -5 }, log: '外の世界の厳しさを一瞬で悟った。' },
-      { text: '完全スルーして部屋に戻る', stat: { health: 5, stress: 0, humanTrust: 5, territory: 0 }, log: '家の中が一番安全だ。' }
-    ]},
-    { id: 'p15', cond: () => true, text: '大好きなおやつが出てきた！', choices: [
-      { text: '満足するまで味わい尽くす', stat: { health: 15, stress: -20, humanTrust: 15, territory: 10 }, log: '我が世の春を謳歌した！' },
-      { text: '上品に食べる', stat: { health: 10, stress: -10, humanTrust: 10, territory: 5 }, log: '美味しく平らげた。' },
-      { text: '一気に平らげて催促する', stat: { health: 5, stress: 0, humanTrust: -5, territory: 5 }, log: 'もっと要求した。' }
-    ]},
-    { id: 'p16', cond: () => true, text: '飼い主が段ボール箱の荷物を開けた。空の箱が目の前にある！', choices: [
-      { text: '即座に飛び込んでジャストフィットを満喫する', stat: { health: 10, stress: -15, humanTrust: 5, territory: 15 }, log: '完璧なフィット感に身を委ね、至福のひとときを過ごした。' },
-      { text: '端っこをバリバリと噛みちぎる', stat: { health: 0, stress: -10, humanTrust: -5, territory: 10 }, log: 'ストレス発散になったが、飼い主に怒られた。' },
-      { text: 'すまし顔でスルーする', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '興味がないフリをした。' }
-    ]},
-    { id: 'p17', cond: () => true, text: '夜中に飼い主が布団に入ってきた。', choices: [
-      { text: '飼い主の枕を占領して寝る', stat: { health: 10, stress: -10, humanTrust: 15, territory: 20 }, log: '布団のど真ん中をキープし、最高の寝心地だった。' },
-      { text: '足元で丸くなって温めてあげる', stat: { health: 5, stress: -10, humanTrust: 20, territory: 10 }, log: '飼い主が「天使だ…」と感激していた。' },
-      { text: '深夜のテンションで飼い主の足を襲う', stat: { health: -5, stress: 10, humanTrust: -10, territory: 5 }, log: '布団の上で大運動会を開催した。' }
-    ]},
-    { id: 'p18', cond: () => true, text: 'テレビに鳥や虫のドキュメンタリー番組が映っている。', choices: [
-      { text: '画面にガチギレしながら猫パンチ連打', stat: { health: -5, stress: -10, humanTrust: 0, territory: 10 }, log: 'テレビの画面を一生懸命ハントしようとした。' },
-      { text: 'かぶりつきでじっと鑑賞する', stat: { health: 5, stress: -5, humanTrust: 5, territory: 0 }, log: '最高の娯楽タイムを楽しんだ。' },
-      { text: '興味なく背中を向けて寝る', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '偽物には釣られない。' }
-    ]},
-    { id: 'p19', cond: () => true, text: 'お風呂上がりの飼い主の足に、なぜか飛びつきたくなった。', choices: [
-      { text: '隙をついて飛びつき、ハンターの腕前を見せる', stat: { health: 0, stress: -10, humanTrust: -5, territory: 10 }, log: '飼い主に「痛っ！」と言われて満足した。' },
-      { text: '足の匂いはくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
-      { text: '完全無視して毛づくろいをする', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: 'クールにスルーした。' }
-    ]},
-    { id: 'p20', cond: () => true, text: 'お部屋の模様替えが行われ、家具の位置が変わった！', choices: [
-      { text: '新しくできた隙間や高所をくまなく探検する', stat: { health: 5, stress: 5, humanTrust: 5, territory: 15 }, log: '我が家の新しい防衛ラインを完璧に把握した。' },
-      { text: '見慣れない風景に戸惑って隠れる', stat: { health: -5, stress: 15, humanTrust: 0, territory: -5 }, log: '落ち着くまでしばらくソファの下にこもった。' },
-      { text: '新しいソファの感触を真っ先に試す', stat: { health: 10, stress: -10, humanTrust: 10, territory: 10 }, log: '新しい特等席を即座に見つけた。' }
     ]}
   ]
 };
@@ -255,16 +155,12 @@ export default function CatLifeGame() {
     }
   }, []);
 
-  // 上位何％かを計算する関数（仮定の総プレーヤー数ベース、またはランキング内での位置）
-  // ここではデイリーランキングのデータ（最小10件など）を基に、よりリアルな母数を想定して算出します
   const calculatePercentile = (score) => {
-    // ランキング内の全スコアと比較
     const allScores = [...dailyRankings.map(r => r.score), score].sort((a, b) => b - a);
     const rank = allScores.indexOf(score) + 1;
-    const totalPlayers = Math.max(100, dailyRankings.length * 10); // 想定母数
+    const totalPlayers = Math.max(100, dailyRankings.length * 10);
     const calculatedRank = Math.min(totalPlayers, Math.max(1, Math.round((rank / dailyRankings.length) * 15)));
-    const percentile = Math.max(1, Math.min(100, Math.round((calculatedRank / totalPlayers) * 100)));
-    return percentile;
+    return Math.max(1, Math.min(100, Math.round((calculatedRank / totalPlayers) * 100)));
   };
 
   const sendToSpreadsheet = async (scoreToSave, customUserName) => {
@@ -392,16 +288,36 @@ export default function CatLifeGame() {
 
     if (newStats.health <= 0) {
       isDead = true;
-      reason = newStats.stress >= 80 ? '過度なストレスと体力の限界' : '怪我と体力の消耗';
+      reason = newStats.stress >= 80 ? '過度なストレスによる心身の衰弱' : '度重なる怪我と体力の限界';
     } else if (Math.random() < deathChance) {
       isDead = true;
-      if (catType === 'stray') {
-        const strayReasons = ['過酷な寒さと飢え', '交通事故や外敵とのトラブル', '病気と体力の限界'];
-        reason = strayReasons[Math.floor(Math.random() * strayReasons.length)];
-      } else {
-        const petReasons = newAge >= 15 ? ['老衰（大往生・安らかな眠り）', '天寿を全うした老衰'] : ['病気による体力の低下', 'ちょっとした体調不良'];
-        reason = petReasons[Math.floor(Math.random() * petReasons.length)];
-      }
+      
+      // --- ☠️ 20種類の死因バリエーション ---
+      const deathReasons = catType === 'stray' ? [
+        '過酷な冬の寒さと飢えによる力尽き',
+        '縄張り争いに敗北した傷がもとでの力尽き',
+        '交通事故による突然の不慮の事故',
+        '野良猫特有の感染症による体調悪化',
+        '食べてはいけないものを食べたことによる中毒',
+        'カラスの群れとの激しい抗争の敗北',
+        '雨風を凌げず低体温症で眠るように...',
+        '野良犬に追われて崖から転落',
+        '心優しい人間に保護されてそのまま家猫に（リタイア）',
+        '寿命を迎えて大好きな路地裏で安らかな眠り'
+      ] : [
+        '老衰（大往生・コタツの中での安らかな眠り）',
+        '持病の悪化による穏やかなお別れ',
+        'フードの食べ過ぎによるまさかの肥満トラブル',
+        '高所からのジャンプ失敗によるちょっぴり恥ずかしい負傷',
+        '動物病院の注射のストレスによるショック',
+        'お風呂に入れられたショックによるフリーズ',
+        'お気に入りのオモチャを飲み込んでしまい緊急手術ののち...',
+        '換毛期の毛玉が喉につまったことによる体調不良',
+        '雷の音にパニックを起こしてハートが限界に',
+        '飼い主に溺愛されすぎて天寿を全うした大往生'
+      ];
+
+      reason = deathReasons[Math.floor(Math.random() * deathReasons.length)];
     }
 
     if (isDead) {
@@ -440,15 +356,19 @@ export default function CatLifeGame() {
     return () => clearInterval(timerRef.current);
   }, [gameState, speed, currentEvent, stats, age, usedEvents]);
 
+  // --- Xシェア文面の最適化 (2番の実装) ---
   const shareToX = () => {
     const currentUrl = window.location.href;
     const percentile = calculatePercentile(finalScore);
+    const typeStr = catType === 'pet' ? '🏠 飼い猫' : '🐾 野良猫';
+    
     const text = encodeURIComponent(
-      `猫の人生シミュレーションで遊んだよ！\n\n` +
-      `🐱 名前: ${catName} (${catType === 'pet' ? '飼い猫' : '野良猫'})\n` +
-      `📅 寿命: ${age}歳\n` +
-      `💀 死因: ${causeOfDeath}\n` +
-      `🏰 スコア: ${finalScore}pt (上位 ${percentile}%)\n\n` +
+      `我が家の愛猫【${catName}】の猫生が終わりました。\n\n` +
+      `生き方: ${typeStr}\n` +
+      `寿命: ${age}歳\n` +
+      `最期の言葉（死因）: ${causeOfDeath}\n` +
+      `最終スコア: ${finalScore}pt （デイリー上位 ${percentile}%）\n\n` +
+      `皆も過酷な（あるいは優雅な）猫生を体験してみよう！🐾\n` +
       `#猫の人生シミュレーション\n` +
       `${currentUrl}`
     );
