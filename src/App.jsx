@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- イベントデータ ---
+// --- イベントデータベース（野良猫・飼い猫合わせて40種類） ---
 const EVENT_DB = {
   stray: [
     { id: 's1', cond: () => true, text: 'ゴミ捨て場で美味しそうな匂いがする。', choices: [
@@ -128,7 +128,7 @@ const EVENT_DB = {
     { id: 'p5', cond: () => true, text: '新しいふわふわのベッドが用意された。', choices: [
       { text: '真っ先に占領する', stat: { health: 10, stress: -10, humanTrust: 10, territory: 10 }, log: '最高の寝床をマイテリトリーにした！' },
       { text: '付属の段ボールに入る', stat: { health: 5, stress: -15, humanTrust: 0, territory: 5 }, log: 'やっぱり段ボールが落ち着く。' },
-      { text: 'いつもの場所で寝る', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '安心의定位置を守った。' }
+      { text: 'いつもの場所で寝る', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: '安心の定位置を守った。' }
     ]},
     { id: 'p6', cond: (s) => s.stress > 20, text: 'なんだかイライラする…。', choices: [
       { text: '部屋中を猛ダッシュする', stat: { health: -5, stress: -20, humanTrust: 0, territory: 10 }, log: '家中を駆け巡り自分の匂いをつけて回った！' },
@@ -222,6 +222,8 @@ export default function CatLifeGame() {
   const [causeOfDeath, setCauseOfDeath] = useState('');
   
   const [rankings, setRankings] = useState([]);
+  const [adminPass, setAdminPass] = useState('');
+  const [adminAuth, setAdminAuth] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(5.0);
   const [speed, setSpeed] = useState(1); 
@@ -237,6 +239,31 @@ export default function CatLifeGame() {
       }
     }
   }, []);
+
+  const saveGameResult = (finalAge, finalScore, type, reason) => {
+    const newRecord = {
+      name: catName,
+      type: type === 'pet' ? '飼い猫' : '野良猫',
+      age: finalAge,
+      score: finalScore,
+      reason: reason,
+      date: new Date().toLocaleString()
+    };
+
+    const updatedRankings = [...rankings, newRecord]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+    setRankings(updatedRankings);
+    localStorage.setItem('cat_game_rankings', JSON.stringify(updatedRankings));
+
+    const analyticsRaw = localStorage.getItem('cat_game_analytics');
+    const analytics = analyticsRaw ? JSON.parse(analyticsRaw) : { totalPlays: 0, petCount: 0, strayCount: 0, deaths: [] };
+    analytics.totalPlays += 1;
+    if (type === 'pet') analytics.petCount += 1;
+    else analytics.strayCount += 1;
+    analytics.deaths.push({ age: finalAge, reason, type: type === 'pet' ? '飼い猫' : '野良猫', date: newRecord.date });
+    localStorage.setItem('cat_game_analytics', JSON.stringify(analytics));
+  };
 
   const startGame = (e) => {
     e.preventDefault();
@@ -259,12 +286,13 @@ export default function CatLifeGame() {
 
   const pickNextEvent = (currentType, currentUsedEvents, currentStats) => {
     setTimeLeft(5.0);
-    let availableEvents = EVENT_DB[currentType].filter(
+    let db = EVENT_DB[currentType] || EVENT_DB.pet;
+    let availableEvents = db.filter(
       ev => !currentUsedEvents.includes(ev.id) && ev.cond(currentStats)
     );
     if (availableEvents.length === 0) {
-      availableEvents = EVENT_DB[currentType].filter(ev => ev.cond(currentStats));
-      if (availableEvents.length === 0) availableEvents = EVENT_DB[currentType];
+      availableEvents = db.filter(ev => ev.cond(currentStats));
+      if (availableEvents.length === 0) availableEvents = db;
     }
     const randomEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
     setCurrentEvent(randomEvent);
@@ -325,23 +353,8 @@ export default function CatLifeGame() {
     if (isDead) {
       setCauseOfDeath(reason);
       setGameState('GAMEOVER');
-
       const finalScore = (newStats.territory * 10) + (newAge * 50);
-      const newRecord = {
-        name: catName,
-        type: catType === 'pet' ? '飼い猫' : '野良猫',
-        age: newAge,
-        territory: newStats.territory,
-        score: finalScore,
-        date: new Date().toLocaleDateString()
-      };
-
-      const updatedRankings = [...rankings, newRecord]
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
-
-      setRankings(updatedRankings);
-      localStorage.setItem('cat_game_rankings', JSON.stringify(updatedRankings));
+      saveGameResult(newAge, finalScore, catType, reason);
       return;
     }
 
@@ -364,22 +377,9 @@ export default function CatLifeGame() {
     return () => clearInterval(timerRef.current);
   }, [gameState, speed, currentEvent, stats, age, usedEvents]);
 
-  const generateSummary = () => {
-    if (catType === 'stray') {
-      if (age <= 3) return `過酷な外の世界で、${catName}の命は短くも燃え尽きました。野良猫の現実は厳しいものです。`;
-      if (age <= 7) return `${catName}は野良猫として立派に縄張りを生き抜きました。たくましい猫生でした。`;
-      return `${catName}は野良猫としては異例の長寿を全うしました！伝説のボス猫として語り継がれるでしょう。`;
-    } else {
-      if (age <= 5) return `若くして旅立ってしまいましたが、${catName}は温かい家で愛されて過ごしました。`;
-      if (age <= 15) return `${catName}は飼い主と共にたくさんの幸せな時間を過ごし、穏やかに眠りにつきました。`;
-      return `なんと${age}歳！室内飼いの平均寿命（16.23歳）に並ぶ、あるいは超える素晴らしい大往生でした。家族にとって最高の相棒でした。`;
-    }
-  };
-
-  // --- サイトURL付きXシェア用関数 ---
   const shareToX = () => {
     const finalScore = (stats.territory * 10) + (age * 50);
-    const currentUrl = window.location.href; // 現在のページのURLを取得
+    const currentUrl = window.location.href;
     const text = encodeURIComponent(
       `猫の人生シミュレーションで遊んだよ！\n\n` +
       `🐱 名前: ${catName} (${catType === 'pet' ? '飼い猫' : '野良猫'})\n` +
@@ -393,294 +393,45 @@ export default function CatLifeGame() {
   };
 
   const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#fffbeb',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'sans-serif',
-      color: '#1f2937',
-      padding: '24px',
-      boxSizing: 'border-box'
-    },
-    card: {
-      backgroundColor: '#ffffff',
-      padding: '40px 32px',
-      borderRadius: '24px',
-      boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)',
-      maxWidth: '480px',
-      width: '100%',
-      textAlign: 'center',
-      border: '2px solid #fde68a',
-      boxSizing: 'border-box'
-    },
-    title: {
-      fontSize: '32px',
-      fontWeight: '900',
-      color: '#d97706',
-      marginBottom: '8px',
-      letterSpacing: '1px'
-    },
-    subtitle: {
-      fontSize: '15px',
-      color: '#4b5563',
-      marginBottom: '28px'
-    },
-    input: {
-      width: '100%',
-      padding: '14px 16px',
-      fontSize: '16px',
-      border: '2px solid #e5e7eb',
-      borderRadius: '12px',
-      marginBottom: '24px',
-      boxSizing: 'border-box',
-      outline: 'none',
-      backgroundColor: '#fafaf9'
-    },
-    buttonGroup: {
-      display: 'flex',
-      gap: '12px',
-      marginBottom: '28px'
-    },
-    typeButton: (selected) => ({
-      flex: 1,
-      padding: '14px',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      borderRadius: '12px',
-      border: selected ? '2px solid #d97706' : '2px solid #e5e7eb',
-      cursor: 'pointer',
-      backgroundColor: selected ? '#fff7ed' : '#ffffff',
-      color: selected ? '#c2410c' : '#4b5563',
-      boxShadow: selected ? '0 4px 12px rgba(217, 119, 6, 0.2)' : 'none',
-      transition: 'all 0.2s'
-    }),
-    submitButton: {
-      width: '100%',
-      padding: '16px',
-      fontSize: '18px',
-      fontWeight: 'bold',
-      backgroundColor: '#ea580c',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '14px',
-      cursor: 'pointer',
-      boxShadow: '0 6px 16px rgba(234, 88, 12, 0.35)',
-      transition: 'transform 0.1s',
-      marginBottom: '10px'
-    },
-    xShareButton: {
-      width: '100%',
-      padding: '14px',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      backgroundColor: '#000000',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '14px',
-      cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px'
-    },
-    playWrapper: {
-      minHeight: '100vh',
-      backgroundColor: '#fffbeb',
-      display: 'flex',
-      justifyContent: 'center',
-      padding: '32px 16px',
-      boxSizing: 'border-box',
-      fontFamily: 'sans-serif'
-    },
-    playInner: {
-      width: '100%',
-      maxWidth: '640px',
-      boxSizing: 'border-box'
-    },
-    headerBox: {
-      backgroundColor: '#ffffff',
-      padding: '20px 24px',
-      borderRadius: '16px',
-      boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '16px',
-      border: '1px solid #fef3c7'
-    },
-    speedBox: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      gap: '8px',
-      marginBottom: '16px'
-    },
-    speedBtn: (active) => ({
-      padding: '8px 14px',
-      fontSize: '14px',
-      borderRadius: '8px',
-      border: active ? '2px solid #d97706' : '1px solid #d1d5db',
-      cursor: 'pointer',
-      backgroundColor: active ? '#d97706' : '#ffffff',
-      color: active ? '#ffffff' : '#374151',
-      fontWeight: active ? 'bold' : 'normal'
-    }),
-    eventCard: {
-      backgroundColor: '#ffffff',
-      padding: '32px 24px',
-      borderRadius: '20px',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-      marginBottom: '20px',
-      boxSizing: 'border-box',
-      border: '1px solid #fef3c7'
-    },
-    eventTitle: {
-      fontSize: '22px',
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: '24px',
-      color: '#1f2937',
-      lineHeight: '1.5'
-    },
-    progressBarBg: {
-      width: '100%',
-      backgroundColor: '#f3f4f6',
-      height: '10px',
-      borderRadius: '5px',
-      marginBottom: '24px',
-      overflow: 'hidden'
-    },
-    progressBarFill: {
-      backgroundColor: '#f59e0b',
-      height: '100%',
-      transition: 'width 0.1s linear'
-    },
-    choiceBtn: (isAuto) => ({
-      width: '100%',
-      textAlign: 'left',
-      padding: '18px 20px',
-      marginBottom: '14px',
-      borderRadius: '12px',
-      border: isAuto ? '3px solid #f59e0b' : '2px solid #e5e7eb',
-      backgroundColor: isAuto ? '#fffbeb' : '#f9fafb',
-      color: '#1f2937',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      position: 'relative',
-      boxSizing: 'border-box',
-      boxShadow: isAuto ? '0 4px 12px rgba(245, 158, 11, 0.2)' : 'none'
-    }),
-    autoBadge: {
-      position: 'absolute',
-      top: '-12px',
-      left: '16px',
-      backgroundColor: '#f59e0b',
-      color: '#ffffff',
-      fontSize: '12px',
-      padding: '3px 10px',
-      borderRadius: '6px',
-      fontWeight: 'bold',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-    },
-    logBox: {
-      backgroundColor: '#ffffff',
-      padding: '20px',
-      borderRadius: '16px',
-      boxShadow: '0 6px 18px rgba(0,0,0,0.05)',
-      height: '180px',
-      overflowY: 'auto',
-      fontSize: '14px',
-      color: '#4b5563',
-      display: 'flex',
-      flexDirection: 'column-reverse',
-      boxSizing: 'border-box',
-      border: '1px solid #fef3c7'
-    },
-    gameOverWrapper: {
-      minHeight: '100vh',
-      backgroundColor: '#fffbeb',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-      color: '#1f2937',
-      fontFamily: 'sans-serif',
-      boxSizing: 'border-box'
-    },
-    gameOverCard: {
-      backgroundColor: '#ffffff',
-      padding: '40px 32px',
-      borderRadius: '24px',
-      boxShadow: '0 15px 35px rgba(245, 158, 11, 0.2)',
-      maxWidth: '520px',
-      width: '100%',
-      textAlign: 'center',
-      border: '2px solid #fde68a',
-      boxSizing: 'border-box'
-    }
+    container: { minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1f2937', padding: '24px', boxSizing: 'border-box' },
+    card: { backgroundColor: '#ffffff', padding: '40px 32px', borderRadius: '24px', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)', maxWidth: '480px', width: '100%', textAlign: 'center', border: '2px solid #fde68a', boxSizing: 'border-box' },
+    title: { fontSize: '32px', fontWeight: '900', color: '#d97706', marginBottom: '8px' },
+    input: { width: '100%', padding: '14px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '12px', marginBottom: '24px', boxSizing: 'border-box', outline: 'none' },
+    submitButton: { width: '100%', padding: '16px', fontSize: '18px', fontWeight: 'bold', backgroundColor: '#ea580c', color: '#ffffff', border: 'none', borderRadius: '14px', cursor: 'pointer', marginBottom: '10px' },
+    adminLink: { marginTop: '16px', fontSize: '13px', color: '#9ca3af', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline' }
   };
 
-  if (gameState === 'START') {
+  if (gameState === 'ADMIN') {
+    const analyticsRaw = localStorage.getItem('cat_game_analytics');
+    const analytics = analyticsRaw ? JSON.parse(analyticsRaw) : { totalPlays: 0, petCount: 0, strayCount: 0, deaths: [] };
+
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🐱🐾</div>
-          <h1 style={styles.title}>猫の人生シミュレーション</h1>
-          <p style={styles.subtitle}>あなたの猫生はどんな物語になるでしょうか？</p>
-          
-          <form onSubmit={startGame}>
-            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
-                名前（空欄で自動生成）
-              </label>
-              <input 
-                type="text" 
-                value={catName} 
-                onChange={e => setCatName(e.target.value)}
-                placeholder="例: タマ、クロ、ミケ"
-                style={styles.input}
-              />
+          <h2 style={{ color: '#d97706', marginBottom: '20px' }}>🔐 管理者ダッシュボード</h2>
+          {!adminAuth ? (
+            <div>
+              <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '12px' }}>管理者パスワードを入力してください</p>
+              <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="パスワード" style={styles.input} />
+              <button onClick={() => { if (adminPass === 'nekodash123') setAdminAuth(true); else alert('パスワードが違います'); }} style={styles.submitButton}>ログイン</button>
+              <button onClick={() => setGameState('START')} style={{ ...styles.adminLink, display: 'block', width: '100%' }}>トップに戻る</button>
             </div>
-            
-            <div style={{ textAlign: 'left', marginBottom: '28px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>
-                生き方を選ぶ
-              </label>
-              <div style={styles.buttonGroup}>
-                <button
-                  type="button"
-                  onClick={() => setCatType('pet')}
-                  style={styles.typeButton(catType === 'pet')}
-                >
-                  🏠 飼い猫
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCatType('stray')}
-                  style={styles.typeButton(catType === 'stray')}
-                >
-                  🐾 野良猫
-                </button>
+          ) : (
+            <div style={{ textAlign: 'left', fontSize: '14px' }}>
+              <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #fde68a' }}>
+                <p>📊 <b>総プレイ回数:</b> {analytics.totalPlays} 回</p>
+                <p>🏠 飼い猫選択: {analytics.petCount} 回</p>
+                <p>🐾 野良猫選択: {analytics.strayCount} 回</p>
               </div>
-            </div>
-
-            <button type="submit" style={styles.submitButton}>
-              ✨ 人生を始める
-            </button>
-          </form>
-
-          {rankings.length > 0 && (
-            <div style={{ marginTop: '32px', textAlign: 'left', backgroundColor: '#fff7ed', padding: '16px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
-              <p style={{ fontWeight: 'bold', color: '#b45309', fontSize: '14px', marginBottom: '8px' }}>🏆 ローカル殿堂入りランキング (Top 5)</p>
-              {rankings.map((r, i) => (
-                <div key={i} style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #fed7aa' }}>
-                  <span>{i + 1}. {r.name} ({r.type}) - {r.age}歳</span>
-                  <span style={{ fontWeight: 'bold', color: '#d97706' }}>{r.score} pt</span>
-                </div>
-              ))}
+              <h3 style={{ fontSize: '16px', color: '#1f2937', marginBottom: '8px' }}>📜 最近のプレイ・死亡ログ</h3>
+              <div style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#f9fafb', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}>
+                {analytics.deaths.slice().reverse().map((d, i) => (
+                  <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #e5e7eb' }}>
+                    <b>{d.type}</b> (寿命: {d.age}歳) - 死因: {d.reason} <span style={{ color: '#9ca3af', fontSize: '10px' }}>({d.date})</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setGameState('START')} style={{ ...styles.submitButton, marginTop: '20px' }}>ゲームに戻る</button>
             </div>
           )}
         </div>
@@ -688,133 +439,99 @@ export default function CatLifeGame() {
     );
   }
 
+  if (gameState === 'START') {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🐱🐾</div>
+          <h1 style={styles.title}>猫の人生シミュレーション</h1>
+          <p style={{ fontSize: '15px', color: '#4b5563', marginBottom: '28px' }}>あなたの猫生はどんな物語になるでしょうか？</p>
+          
+          <form onSubmit={startGame}>
+            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>名前</label>
+              <input type="text" value={catName} onChange={e => setCatName(e.target.value)} placeholder="例: タマ" style={styles.input} />
+            </div>
+            
+            <div style={{ textAlign: 'left', marginBottom: '28px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151' }}>生き方を選ぶ</label>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setCatType('pet')} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: catType === 'pet' ? '2px solid #d97706' : '2px solid #e5e7eb', background: catType === 'pet' ? '#fff7ed' : '#fff' }}>🏠 飼い猫</button>
+                <button type="button" onClick={() => setCatType('stray')} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: catType === 'stray' ? '2px solid #d97706' : '2px solid #e5e7eb', background: catType === 'stray' ? '#fff7ed' : '#fff' }}>🐾 野良猫</button>
+              </div>
+            </div>
+
+            <button type="submit" style={styles.submitButton}>✨ 人生を始める</button>
+          </form>
+
+          {rankings.length > 0 && (
+            <div style={{ marginTop: '24px', textAlign: 'left', backgroundColor: '#fff7ed', padding: '14px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
+              <p style={{ fontWeight: 'bold', color: '#b45309', fontSize: '13px', marginBottom: '6px' }}>🏆 ローカル殿堂入り (Top 5)</p>
+              {rankings.map((r, i) => (
+                <div key={i} style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px dashed #fed7aa' }}>
+                  <span>{i + 1}. {r.name} ({r.type}) - {r.age}歳</span>
+                  <span style={{ fontWeight: 'bold', color: '#d97706' }}>{r.score} pt</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button onClick={() => setGameState('ADMIN')} style={styles.adminLink}>管理者ダッシュボード</button>
+        </div>
+      </div>
+    );
+  }
+
   if (gameState === 'PLAYING') {
     return (
-      <div style={styles.playWrapper}>
-        <div style={styles.playInner}>
-          <div style={styles.headerBox}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', justifyContent: 'center', padding: '32px 16px', boxSizing: 'border-box' }}>
+        <div style={{ width: '100%', maxWidth: '640px' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '20px 24px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', border: '1px solid #fef3c7' }}>
             <div>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#d97706', margin: '0 0 4px 0' }}>
-                {catName} <span style={{ fontSize: '15px', color: '#6b7280' }}>({catType === 'pet' ? '🏠 飼い猫' : '🐾 野良猫'})</span>
-              </h2>
-              <p style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: '#1f2937' }}>📅 現在: {age} 歳</p>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#d97706', margin: '0 0 4px 0' }}>{catName} ({catType === 'pet' ? '🏠 飼い猫' : '🐾 野良猫'})</h2>
+              <p style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>📅 現在: {age} 歳</p>
             </div>
-            <div style={{ textAlign: 'right', fontSize: '13px', color: '#4b5563', lineHeight: '1.5', fontWeight: '600' }}>
+            <div style={{ textAlign: 'right', fontSize: '13px', color: '#4b5563', fontWeight: '600' }}>
               <div>❤️ 体力: {stats.health}</div>
               <div>⚡ ストレス: {stats.stress}</div>
-              <div>🤝 信頼: {stats.humanTrust}</div>
               <div style={{ color: '#d97706', fontWeight: 'bold' }}>🏰 縄張り: {stats.territory}pt</div>
             </div>
           </div>
 
-          <div style={styles.speedBox}>
-            {[
-              { label: '⏸️ 停止', val: 0 },
-              { label: '▶️ x0.5', val: 0.5 },
-              { label: '▶️ x1', val: 1 },
-              { label: '▶️ x2', val: 2 },
-              { label: '▶️ x5', val: 5 }
-            ].map(s => (
-              <button 
-                key={s.val}
-                onClick={() => setSpeed(s.val)}
-                style={styles.speedBtn(speed === s.val)}
-              >
-                {s.label}
-              </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+            {[{ label: '⏸️ 停止', val: 0 }, { label: '▶️ x1', val: 1 }, { label: '▶️ x5', val: 5 }].map(s => (
+              <button key={s.val} onClick={() => setSpeed(s.val)} style={{ padding: '8px 14px', borderRadius: '8px', background: speed === s.val ? '#d97706' : '#fff', color: speed === s.val ? '#fff' : '#374151', border: '1px solid #d1d5db' }}>{s.label}</button>
             ))}
           </div>
 
-          <div style={styles.eventCard}>
-            <h3 style={styles.eventTitle}>{currentEvent?.text}</h3>
-            
-            <div style={styles.progressBarBg}>
-              <div 
-                style={{ ...styles.progressBarFill, width: `${(timeLeft / 5) * 100}%` }}
-              ></div>
+          <div style={{ backgroundColor: '#ffffff', padding: '32px 24px', borderRadius: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #fef3c7' }}>
+            <h3 style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', marginBottom: '24px' }}>{currentEvent?.text}</h3>
+            <div style={{ width: '100%', backgroundColor: '#f3f4f6', height: '10px', borderRadius: '5px', marginBottom: '24px', overflow: 'hidden' }}>
+              <div style={{ backgroundColor: '#f59e0b', height: '100%', width: `${(timeLeft / 5) * 100}%`, transition: 'width 0.1s linear' }}></div>
             </div>
-
             <div>
               {currentEvent?.choices.map((choice, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleChoice(choice)}
-                  style={styles.choiceBtn(idx === 0)}
-                >
-                  {idx === 0 && (
-                    <span style={styles.autoBadge}>
-                      ⭐ 自動選択 ({Math.ceil(timeLeft)}s)
-                    </span>
-                  )}
+                <button key={idx} onClick={() => handleChoice(choice)} style={{ width: '100%', textAlign: 'left', padding: '18px 20px', marginBottom: '14px', borderRadius: '12px', border: idx === 0 ? '3px solid #f59e0b' : '2px solid #e5e7eb', background: idx === 0 ? '#fffbeb' : '#f9fafb', fontWeight: '600', cursor: 'pointer' }}>
                   {choice.text}
                 </button>
               ))}
             </div>
-          </div>
-
-          <div style={styles.logBox}>
-            {history.slice().reverse().map((log, i) => (
-              <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f3f4f6' }}>
-                {log}
-              </div>
-            ))}
           </div>
         </div>
       </div>
     );
   }
 
-  const randomEmoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-
   return (
-    <div style={styles.gameOverWrapper}>
-      <div style={styles.gameOverCard}>
-        <div style={{ fontSize: '56px', marginBottom: '12px' }}>{randomEmoji}</div>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '4px', color: '#1f2937' }}>猫生終了</h1>
-        <p style={{ fontSize: '18px', color: '#d97706', fontWeight: 'bold', marginBottom: '12px' }}>
-          {catName} は {age} 歳で虹の橋を渡りました。
-        </p>
-
-        <div style={{ backgroundColor: '#fef2f2', padding: '10px', borderRadius: '10px', marginBottom: '16px', border: '1px solid #fecaca' }}>
-          <p style={{ fontSize: '14px', color: '#dc2626', fontWeight: 'bold', margin: 0 }}>
-            💀 死因: {causeOfDeath}
-          </p>
-        </div>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <div style={{ fontSize: '56px', marginBottom: '12px' }}>{EMOJIS[Math.floor(Math.random() * EMOJIS.length)]}</div>
+        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '4px' }}>猫生終了</h1>
+        <p style={{ fontSize: '18px', color: '#d97706', fontWeight: 'bold', marginBottom: '12px' }}>{catName} は {age} 歳で虹の橋を渡りました。</p>
+        <p style={{ fontSize: '14px', color: '#dc2626', fontWeight: 'bold', marginBottom: '16px' }}>💀 死因: {causeOfDeath}</p>
         
-        <div style={{ backgroundColor: '#fff7ed', padding: '14px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #fde68a', textAlign: 'left' }}>
-          <p style={{ fontSize: '14px', color: '#9a3412', fontWeight: 'bold', marginBottom: '8px' }}>
-            🏆 今回のスコア: <span style={{ fontSize: '18px', color: '#d97706' }}>{(stats.territory * 10) + (age * 50)} pt</span>
-          </p>
-          <div style={{ borderTop: '1px solid #fed7aa', paddingTop: '8px', marginTop: '8px' }}>
-            <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#b45309', marginBottom: '4px' }}>ローカルランキング (Top 5)</p>
-            {rankings.map((r, i) => (
-              <div key={i} style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                <span>{i + 1}. {r.name} ({r.age}歳)</span>
-                <span style={{ fontWeight: 'bold', color: '#d97706' }}>{r.score} pt</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '14px', marginBottom: '20px', textAlign: 'left', fontSize: '13px', lineHeight: '1.5', border: '1px solid #e5e7eb' }}>
-          <p style={{ fontWeight: 'bold', color: '#d97706', margin: '0 0 4px 0' }}>📜 【人生の総評】</p>
-          <p style={{ margin: 0, color: '#4b5563' }}>{generateSummary()}</p>
-        </div>
-
-        {/* Xシェアボタン（サイトURL付き） */}
-        <button 
-          onClick={shareToX} 
-          style={styles.xShareButton}
-        >
-          𝕏 で結果をシェアする
-        </button>
-
-        <button 
-          onClick={() => setGameState('START')} 
-          style={{ ...styles.submitButton, marginTop: '10px' }}
-        >
-          🔄 新たな人生を始める
-        </button>
+        <button onClick={shareToX} style={{ width: '100%', padding: '14px', background: '#000', color: '#fff', fontWeight: 'bold', borderRadius: '14px', border: 'none', marginBottom: '10px', cursor: 'pointer' }}>𝕏 で結果をシェアする</button>
+        <button onClick={() => setGameState('START')} style={styles.submitButton}>🔄 新たな人生を始める</button>
       </div>
     </div>
   );
