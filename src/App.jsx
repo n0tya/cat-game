@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // --- 設定: Google Apps Script (GAS) のウェブアプリURL ---
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzESuhQi6WXyyhD-xLJ00w6D6AVozK3rxm5dIFcrirE6iK3NFHvQmmaUunYUXpZp3w/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzctkXSVMIa7OkA1Me1kXRJZu_S8339d-zUkTvX5Obk1WFjT0w_LukUpOJdBWv1FZIB/exec";
 
 // --- イベントデータベース ---
 const EVENT_DB = {
@@ -200,7 +200,7 @@ const EVENT_DB = {
     ]},
     { id: 'p19', cond: () => true, text: 'お風呂上がりの飼い主の足に、なぜか飛びつきたくなった。', choices: [
       { text: '隙をついて飛びつき、ハンターの腕前を見せる', stat: { health: 0, stress: -10, humanTrust: -5, territory: 10 }, log: '飼い主に「痛っ！」と言われて満足した。' },
-      { text: '足の匂いをくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
+      { text: '足の匂いはくんくん嗅いで真顔になる', stat: { health: 0, stress: 0, humanTrust: 5, territory: 0 }, log: '独特の香りに少し引いた。' },
       { text: '完全無視して毛づくろいをする', stat: { health: 0, stress: 0, humanTrust: 0, territory: 0 }, log: 'クールにスルーした。' }
     ]},
     { id: 'p20', cond: () => true, text: 'お部屋の模様替えが行われ、家具の位置が変わった！', choices: [
@@ -225,22 +225,14 @@ export default function CatLifeGame() {
   const [causeOfDeath, setCauseOfDeath] = useState('');
   const [finalScore, setFinalScore] = useState(0);
 
-  // オンラインデイリーランキング関連
   const [dailyRankings, setDailyRankings] = useState([]);
   const [isTop10, setIsTop10] = useState(false);
   const [playerNameInput, setPlayerNameInput] = useState('');
-  
-  // 管理者ページ関連
-  const [adminPass, setAdminPass] = useState('');
-  const [adminAuth, setAdminAuth] = useState(false);
-  const [allUsersData, setAllUsersData] = useState([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(5.0);
   const [speed, setSpeed] = useState(1); 
   const timerRef = useRef(null);
 
-  // デイリーランキングの取得
   useEffect(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const savedKey = `cat_daily_ranking_${todayStr}`;
@@ -262,7 +254,6 @@ export default function CatLifeGame() {
     }
   }, []);
 
-  // スプレッドシートへデータを送信する関数
   const sendToSpreadsheet = async (scoreToSave, customUserName) => {
     if (!GAS_URL || GAS_URL.includes("ここにGASの")) return;
     
@@ -288,26 +279,6 @@ export default function CatLifeGame() {
     }
   };
 
-  // 管理者ログイン成功時にスプレッドシートから全ユーザーデータを取得
-  const fetchAllUsersDataFromSS = async () => {
-    if (!GAS_URL || GAS_URL.includes("ここにGASの")) return;
-    setLoadingLogs(true);
-    try {
-      const res = await fetch(GAS_URL);
-      const data = await res.json();
-      setAllUsersData(data.reverse()); // 新しい順に並び替え
-    } catch (e) {
-      console.error('全データ取得エラー', e);
-    }
-    setLoadingLogs(false);
-  };
-
-  useEffect(() => {
-    if (adminAuth) {
-      fetchAllUsersDataFromSS();
-    }
-  }, [adminAuth]);
-
   const saveDailyRankingAndSS = (scoreToSave, customUserName) => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const savedKey = `cat_daily_ranking_${todayStr}`;
@@ -326,8 +297,6 @@ export default function CatLifeGame() {
 
     setDailyRankings(currentList);
     localStorage.setItem(savedKey, JSON.stringify(currentList));
-
-    // スプレッドシートに送信
     sendToSpreadsheet(scoreToSave, displayName);
     setIsTop10(false);
   };
@@ -430,7 +399,6 @@ export default function CatLifeGame() {
       if (dailyRankings.length < 10 || calculatedScore > lowestScore) {
         setIsTop10(true);
       } else {
-        // TOP10に入らなかった場合でもスプレッドシートには自動で「ゲスト」として記録を送る
         sendToSpreadsheet(calculatedScore, 'ゲスト');
       }
       return;
@@ -474,84 +442,13 @@ export default function CatLifeGame() {
     card: { backgroundColor: '#ffffff', padding: '32px 24px', borderRadius: '24px', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)', maxWidth: '480px', width: '100%', textAlign: 'center', border: '2px solid #fde68a', boxSizing: 'border-box', position: 'relative' },
     title: { fontSize: '28px', fontWeight: '900', color: '#d97706', marginBottom: '8px' },
     input: { width: '100%', padding: '12px 16px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '12px', marginBottom: '20px', boxSizing: 'border-box', outline: 'none', backgroundColor: '#ffffff', color: '#1f2937' },
-    submitButton: { width: '100%', padding: '16px', fontSize: '18px', fontWeight: 'bold', backgroundColor: '#ea580c', color: '#ffffff', border: 'none', borderRadius: '14px', cursor: 'pointer', marginBottom: '10px' },
-    adminTopRight: { position: 'absolute', top: '16px', right: '16px', fontSize: '12px', color: '#d1d5db', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'none', transition: 'color 0.2s' }
+    submitButton: { width: '100%', padding: '16px', fontSize: '18px', fontWeight: 'bold', backgroundColor: '#ea580c', color: '#ffffff', border: 'none', borderRadius: '14px', cursor: 'pointer', marginBottom: '10px' }
   };
-
-  // --- 管理者ダッシュボード（全ユーザーのデータ閲覧） ---
-  if (gameState === 'ADMIN') {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#fffbeb', padding: '24px', fontFamily: 'sans-serif', color: '#1f2937' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: '#ffffff', padding: '24px', borderRadius: '24px', border: '2px solid #fde68a', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ color: '#d97706', fontSize: '22px', margin: 0 }}>🔐 管理者ダッシュボード（全ユーザー履歴）</h2>
-            <button onClick={() => setGameState('START')} style={{ padding: '8px 14px', borderRadius: '8px', background: '#f3f4f6', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 'bold' }}>✕ 閉じる</button>
-          </div>
-
-          {!adminAuth ? (
-            <div style={{ maxWidth: '360px', margin: '40px auto', textAlign: 'center' }}>
-              <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '12px' }}>管理者パスワードを入力してください</p>
-              <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="パスワード" style={styles.input} />
-              <button onClick={() => { if (adminPass === 'nekodash123') setAdminAuth(true); else alert('パスワードが違います'); }} style={styles.submitButton}>ログイン</button>
-            </div>
-          ) : (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>📊 スプレッドシート同期データ（総数: {allUsersData.length} 件）</p>
-                <button onClick={fetchAllUsersDataFromSS} style={{ padding: '6px 12px', backgroundColor: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>🔄 更新する</button>
-              </div>
-
-              {loadingLogs ? (
-                <p style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>データを読み込んでいます...</p>
-              ) : (
-                <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '12px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#fff7ed', borderBottom: '2px solid #fde68a', color: '#b45309' }}>
-                        <th style={{ padding: '10px' }}>日時</th>
-                        <th style={{ padding: '10px' }}>プレイヤー</th>
-                        <th style={{ padding: '10px' }}>猫の名前</th>
-                        <th style={{ padding: '10px' }}>種類</th>
-                        <th style={{ padding: '10px' }}>寿命</th>
-                        <th style={{ padding: '10px' }}>スコア</th>
-                        <th style={{ padding: '10px' }}>死因</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allUsersData.length === 0 ? (
-                        <tr>
-                          <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>データがありません</td>
-                        </tr>
-                      ) : (
-                        allUsersData.map((d, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '8px 10px', fontSize: '11px', color: '#6b7280' }}>{d.date}</td>
-                            <td style={{ padding: '8px 10px', fontWeight: 'bold' }}>{d.player}</td>
-                            <td style={{ padding: '8px 10px' }}>{d.catName}</td>
-                            <td style={{ padding: '8px 10px' }}>{d.type}</td>
-                            <td style={{ padding: '8px 10px' }}>{d.age}歳</td>
-                            <td style={{ padding: '8px 10px', fontWeight: 'bold', color: '#d97706' }}>{d.score}pt</td>
-                            <td style={{ padding: '8px 10px', fontSize: '12px', color: '#dc2626' }}>{d.reason}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   if (gameState === 'START') {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <button onClick={() => setGameState('ADMIN')} style={styles.adminTopRight} title="管理者ページ">⚙️ 管理</button>
-
           <div style={{ fontSize: '48px', marginBottom: '12px', marginTop: '8px' }}>🐱🐾</div>
           <h1 style={styles.title}>猫の人生シミュレーション</h1>
           <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '24px' }}>あなたの猫生はどんな物語になるでしょうか？</p>
@@ -664,7 +561,7 @@ export default function CatLifeGame() {
             <p style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '6px' }}>🎉 デイリーランキング TOP10 入賞！</p>
             <p style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>登録するプレイヤー名（空白なら「ゲスト」）</p>
             <input type="text" value={playerNameInput} onChange={e => setPlayerNameInput(e.target.value)} placeholder="例: プレイヤーA" style={{ ...styles.input, marginBottom: '10px', padding: '8px 12px', fontSize: '14px' }} />
-            <button onClick={() => saveDailyRankingAndSS(finalScore, playerNameInput)} style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>ランキングとシートに登録する</button>
+            <button onClick={() => saveDailyRankingAndSS(finalScore, playerNameInput)} style={{ width: '100%', padding: '10px', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>ランキングに登録</button>
           </div>
         ) : (
           <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #fde68a', textAlign: 'left' }}>
