@@ -209,6 +209,8 @@ const EVENT_DB = {
 };
 
 const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐾', '😻', '😸', '😽'];
+// 空欄時の自動ランダム生成用の名前候補
+const RANDOM_CAT_NAMES = ['タマ', 'クロ', 'ミケ', 'チャトラ', 'レオ', 'ルーク', 'ハナ', 'モモ', 'コタロー', 'キジ', 'ソラ', 'チビ', 'マロン', 'トラ', 'レオ'];
 
 export default function CatLifeGame() {
   const [gameState, setGameState] = useState('START');
@@ -267,7 +269,11 @@ export default function CatLifeGame() {
 
   const startGame = (e) => {
     e.preventDefault();
-    const finalName = catName.trim() === '' ? 'タマ' : catName;
+    // 空欄の場合は多彩な候補からランダムに名前を自動生成
+    const finalName = catName.trim() === '' 
+      ? RANDOM_CAT_NAMES[Math.floor(Math.random() * RANDOM_CAT_NAMES.length)] 
+      : catName;
+
     setCatName(finalName);
     setAge(0);
     setStats({ 
@@ -396,9 +402,9 @@ export default function CatLifeGame() {
     container: { minHeight: '100vh', backgroundColor: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#1f2937', padding: '16px', boxSizing: 'border-box' },
     card: { backgroundColor: '#ffffff', padding: '32px 24px', borderRadius: '24px', boxShadow: '0 12px 30px rgba(245, 158, 11, 0.15)', maxWidth: '480px', width: '100%', textAlign: 'center', border: '2px solid #fde68a', boxSizing: 'border-box', position: 'relative' },
     title: { fontSize: '28px', fontWeight: '900', color: '#d97706', marginBottom: '8px' },
-    input: { width: '100%', padding: '12px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '12px', marginBottom: '20px', boxSizing: 'border-box', outline: 'none' },
+    // スマホのダークモード等でも確実に白背景・黒文字になるよう指定
+    input: { width: '100%', padding: '12px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '12px', marginBottom: '20px', boxSizing: 'border-box', outline: 'none', backgroundColor: '#ffffff', color: '#1f2937' },
     submitButton: { width: '100%', padding: '16px', fontSize: '18px', fontWeight: 'bold', backgroundColor: '#ea580c', color: '#ffffff', border: 'none', borderRadius: '14px', cursor: 'pointer', marginBottom: '10px' },
-    // 右上に配置する目立たない管理者リンク
     adminTopRight: { position: 'absolute', top: '16px', right: '16px', fontSize: '12px', color: '#d1d5db', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'none', transition: 'color 0.2s' }
   };
 
@@ -444,13 +450,10 @@ export default function CatLifeGame() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          {/* 右上の目立たない管理者ボタン */}
           <button 
             onClick={() => setGameState('ADMIN')} 
             style={styles.adminTopRight}
             title="管理者ページ"
-            onMouseOver={(e) => e.target.style.color = '#9ca3af'}
-            onMouseOut={(e) => e.target.style.color = '#d1d5db'}
           >
             ⚙️ 管理
           </button>
@@ -462,7 +465,14 @@ export default function CatLifeGame() {
           <form onSubmit={startGame}>
             <div style={{ textAlign: 'left', marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: '#374151' }}>名前</label>
-              <input type="text" value={catName} onChange={e => setCatName(e.target.value)} placeholder="例: タマ" style={styles.input} />
+              {/* うっすらと自動生成を案内するプレースホルダーを設定 */}
+              <input 
+                type="text" 
+                value={catName} 
+                onChange={e => setCatName(e.target.value)} 
+                placeholder="空白ならランダム自動生成（タマ、クロ、ミケ等）" 
+                style={styles.input} 
+              />
             </div>
             
             <div style={{ textAlign: 'left', marginBottom: '24px' }}>
@@ -556,12 +566,10 @@ export default function CatLifeGame() {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={{ fontSize: '48px', marginBottom: '8px' }}>{EMOJIS[Math.floor(Math.random() * EMOJIS.length)]}</div>
-        {/* スマホでもはっきりと視認できる濃い文字色に変更 */}
         <h1 style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: '#1f2937' }}>猫生終了</h1>
         <p style={{ fontSize: '16px', color: '#d97706', fontWeight: 'bold', marginBottom: '10px' }}>{catName} は {age} 歳で虹の橋を渡りました。</p>
         <p style={{ fontSize: '13px', color: '#dc2626', fontWeight: 'bold', marginBottom: '14px', backgroundColor: '#fef2f2', padding: '8px', borderRadius: '8px', border: '1px solid #fecaca' }}>💀 死因: {causeOfDeath}</p>
         
-        {/* 結果画面のローカルランキング表示 */}
         <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '12px', marginBottom: '14px', border: '1px solid #fde68a', textAlign: 'left' }}>
           <p style={{ fontSize: '13px', color: '#9a3412', fontWeight: 'bold', marginBottom: '6px' }}>
             🏆 今回のスコア: <span style={{ fontSize: '16px', color: '#d97706' }}>{(stats.territory * 10) + (age * 50)} pt</span>
